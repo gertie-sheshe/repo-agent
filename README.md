@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RepoAgent
 
-## Getting Started
+A Next.js AI agent that takes a topic, searches GitHub for the most relevant repository, 
+checks its open issues, and streams back a structured summary — all powered by the 
+GitHub MCP Server and Vercel AI SDK.
 
-First, run the development server:
+## What it does
+
+Type a topic like "AI agents TypeScript" and the agent will:
+
+1. Connect to GitHub's remote MCP Server
+2. Search for the most popular and relevant repositories on that topic
+3. Pick the most interesting one and fetch its open issues
+4. Stream a structured markdown summary back to you in real time
+
+## Tech stack
+
+- [Next.js 14](https://nextjs.org/) — App Router
+- [Vercel AI SDK](https://ai-sdk.dev/) — agentic loop and streaming
+- [GitHub MCP Server](https://github.com/github/github-mcp-server) — remote MCP Server hosted by GitHub
+- Google Gemini 2.5 Flash — LLM
+- Tailwind CSS + `@tailwindcss/typography` — styling
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 18+
+- A [GitHub Personal Access Token](https://github.com/settings/tokens) with `Public repositories` access
+- A Google AI API key (or swap in your preferred provider)
+
+### Installation
+
+```bash
+git clone https://github.com/your-username/repo-radar
+cd repo-radar
+npm install
+```
+
+### Environment variables
+
+Create a `.env.local` file in the root:
+
+```bash
+GITHUB_PERSONAL_ACCESS_TOKEN=your_github_token_here
+GOOGLE_GENERATIVE_AI_API_KEY=your_google_key_here
+```
+
+### Run
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project structure
+repo-radar/
+├── app/
+│   ├── api/
+│   │   └── agent/
+│   │       └── route.ts      # Streaming agent API route
+│   ├── page.tsx              # Chat UI
+│   └── layout.tsx
+├── lib/
+│   └── github-mcp.ts         # MCP client with cached tool discovery
+└── .env.local
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Key concepts
 
-## Learn More
+**MCP (Model Context Protocol)** — a standard protocol that lets AI agents connect 
+to external tool providers. The GitHub MCP Server exposes GitHub's API as a set of 
+tools the LLM can call. Your app acts as the MCP Client.
 
-To learn more about Next.js, take a look at the following resources:
+**Tool discovery vs tool invocation** — when the agent starts, the MCP Client fetches 
+the list of available tools once and caches them. Individual tool calls only happen 
+when the LLM decides it needs them during the agentic loop.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Agentic loop** — `streamText` with `stopWhen: stepCountIs(5)` runs the LLM in a 
+loop, executing tool calls automatically until the model produces a final text response or hits the step limit.
